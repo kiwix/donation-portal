@@ -2,7 +2,7 @@
 # check=skip=SecretsUsedInArgOrEnv
 
 FROM python:3.12-alpine
-LABEL org.opencontainers.image.source=https://github.com/kiwix/container-images
+LABEL org.opencontainers.image.source=https://github.com/kiwix/donation-portal
 
 # Copy pyproject.toml and its dependencies
 COPY pyproject.toml README.md /src/
