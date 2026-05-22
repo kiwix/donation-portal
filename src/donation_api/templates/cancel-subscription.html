@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Cancel your Kiwix Subscription{% endblock %}
+
+{% block content %}
+<h1>Cancel your Kiwix Subscription</h1>
+<p>Dear <code>{{ subscription.customer.email }}</code>,<br />You are about to cancel your <strong>{% include "_sub-summary.html" %}</strong> to Kiwix.</p>
+<p>Are you sure?</p>
+<form method="POST" action="../cancel-subscription">
+    <input type="hidden" name="subscription_id" value="{{ subscription.id }}" />
+    <input type="submit" class="btn btn-primary" value="Yes, cancel my subscription" />
+</form>
+<p><small class="text-body-secondary">You can still make single donations or start another subscription at any time.</small></p>
+{% endblock %}

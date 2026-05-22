@@ -1,0 +1,1 @@
+{% if subscription.plan.interval_count != 1 %}every {{ subscription.plan.interval_count }} {{ subscription.plan.interval }}{% else %}{% if subscription.plan.interval == "day" %}daily{% else %}{{ subscription.plan.interval }}ly{% endif %}{% endif %} donation of {{ (subscription.plan.amount / 100)|round(2) }} {{ subscription.plan.currency|upper }}

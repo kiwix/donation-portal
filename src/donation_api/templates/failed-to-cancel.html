@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Cancelation failed{% endblock %}
+
+{% block content %}
+<h1>Failed to cancel your subscription!</h1>
+<div class="errors">
+  <p class="error-warning">There's been an issue trying to cancel your <code>{{ subscription_id }}</code> subscription.</p>
+  <p>Please contact-us at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+</div>
+{% endblock %}

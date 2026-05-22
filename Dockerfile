@@ -19,7 +19,7 @@ COPY entrypoint.sh /usr/local/bin/entrypoint
 # Install + cleanup
 RUN pip install --no-cache-dir /src \
  && rm -rf /src \
- && pip install --no-cache-dir uvicorn[standard]==0.32.0
+ && pip install --no-cache-dir uvicorn[standard]==0.47.0
 
 # set STRIPE_USE_LIVE=1 for production (use of live key)
 ENV STRIPE_USE_LIVE=0

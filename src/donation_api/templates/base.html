@@ -1,0 +1,22 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>{% block title %}Kiwix Donation API{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="https://get.kiwix.org/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="https://get.kiwix.org/favicon.svg" />
+    <link rel="shortcut icon" href="https://get.kiwix.org/favicon.ico" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <style type="text/css">
+      h1 { font-size: calc(1vw); }
+      .logo { max-width: 100%; width: 10em; margin: 2em 0; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <a href="https://kiwix.org"><img src="https://raw.githubusercontent.com/kiwix/overview/main/branding/kiwix/horizontal-logo.svg" class="logo" /></a>
+      {% block content %}{% endblock %}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+  </body>
+</html>

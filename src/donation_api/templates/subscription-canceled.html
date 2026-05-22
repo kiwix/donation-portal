@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block title %}Already canceled{% endblock %}
+
+{% block content %}
+<h1>Kiwix Subscription canceled</h1>
+<p class="alert alert-info">Already canceled!</p>
+<p>Dear <code>{{ subscription.customer.email }}</code>,<br />Your <strong>{% include "_sub-summary.html" %}</strong> to Kiwix has already been canceled.</p>
+<p><small class="text-body-secondary">You can still make single donations or start another subscription at any time.</small></p>
+{% endblock %}

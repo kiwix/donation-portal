@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Subscription canceled{% endblock %}
+
+{% block content %}
+<h1>Subscription canceled!</h1>
+<div class="errors">
+  <p class="error-success">Your {% include "_sub-summary.html" %} to Kiwix (<code>{{ subscription_id }}</code>) has been canceled.</p>
+  <p><small class="text-body-secondary">You can still make single donations or start another subscription at any time.</small></p>
+</div>
+{% endblock %}

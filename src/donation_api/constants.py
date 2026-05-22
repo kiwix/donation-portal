@@ -1,6 +1,7 @@
 import os
 import pathlib
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import requests
 
@@ -17,9 +18,9 @@ class Constants:
         os.getenv("STRIPE_LIVE_PUBLISHABLE_KEY") or "notset"
     )
     stripe_webhook_secret: str = os.getenv("STRIPE_WEBHOOK_SECRET") or ""
-    stripe_webhook_sender_ips: list[str] = field(default_factory=list)
-    stripe_webhook_testing_ips: list[str] = field(default_factory=list)
-    alllowed_currencies: list[str] = field(default_factory=list)
+    stripe_webhook_sender_ips: list[str] = field(default_factory=list[str])
+    stripe_webhook_testing_ips: list[str] = field(default_factory=list[str])
+    alllowed_currencies: list[str] = field(default_factory=list[str])
     merchantid_domain_association: str = (
         os.getenv("MERCHANTID_DOMAIN_ASSOCIATION") or ""
     )
@@ -43,6 +44,30 @@ class Constants:
 
     stripe_minimal_amount: int = int(os.getenv("STRIPE_MINIMAL_AMOUNT") or "5")
     stripe_maximum_amount: int = int(os.getenv("STRIPE_MAXIMUM_AMOUNT") or "999999")
+
+    templates_dir: Path = Path(
+        os.getenv("TEMPLATES_DIR") or Path(__file__).parent.joinpath("templates")
+    )
+
+    # Product ID on stripe for monthly donations
+    monthly_donation_product_id: str = os.getenv(
+        "MONTHLY_DONATION_PRODUCT_ID", "prod_UYJnL0AH6eEnkB"
+    )
+    # Email given to users in case of issue
+    support_email: str = os.getenv("SUPPORT_EMAIL", "contact+donation@kiwix.org")
+
+    # mailgun sending domain and credentials
+    mailgun_api_url: str = os.getenv(
+        "MAILGUN_API_URL", "https://api.eu.mailgun.net/v3/DOMAIN"
+    )
+    mailgun_api_key: str = os.getenv("MAILGUN_API_KEY", "no-mailgun-api-key")
+    mailgun_timeout: int = int(os.getenv("MAILGUN_TIMEOUT", "6"))
+    email_from: str = os.getenv("EMAIL_FROM", "Kiwix <contact@kiwix.org>")
+    # Name of the mailgun template to use
+    new_sub_email_template: str = os.getenv(
+        "NEW_SUB_EMAIL_TEMPLATE_NAME", "new-subscription.api.donation.kiwix.org"
+    )
+    public_url: str = os.getenv("OWN_PUBLIC_URL", "https://api.donation.kiwix.org/v1")
 
     def __post_init__(self):
         self.alllowed_currencies = [
