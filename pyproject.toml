@@ -20,6 +20,7 @@ dynamic = ["authors", "classifiers", "keywords", "license", "version", "urls"]
 [project.optional-dependencies]
 scripts = [
   "invoke==3.0.3",
+  "uvicorn[standard]==0.47.0",
 ]
 lint = [
   "ruff==0.15.14",
@@ -42,10 +43,6 @@ dev = [
   "donation-api[check]",
 ]
 
-[project.scripts]
-run = "donation_api:entrypoint"
-
-
 [tool.hatch.version]
 path = "src/donation_api/__about__.py"
 
@@ -59,6 +56,9 @@ packages = ["src/donation_api"]
 
 [tool.hatch.envs.default]
 features = ["dev"]
+
+[tool.hatch.envs.default.scripts]
+uvicorn = "inv uvicorn --args '{args}'"
 
 [tool.hatch.envs.test]
 features = ["scripts", "test"]

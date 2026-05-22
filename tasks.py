@@ -104,3 +104,11 @@ def fix_all(ctx: Context, args: str = ""):
     args = args or "."  # needed for hatch script
     fix_lint(ctx, args)
     fix_format(ctx, args)
+
+
+@task(
+    optional=["port"],
+    help={"port": "part to run uvicorn on"},
+)
+def uvicorn(ctx: Context, port: int = 8000):
+    ctx.run(f"uvicorn donation_api.entrypoint:app --host 0.0.0.0 --port {port}")
