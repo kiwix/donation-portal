@@ -359,6 +359,9 @@ async def create_setup_intent(si_payload: SetupIntentRequest):
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
         ) from exc
+    except HTTPException as exc:
+        logger.error(repr(exc))
+        raise exc
     except Exception as exc:
         logger.error(repr(exc))
         raise HTTPException(
