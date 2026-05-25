@@ -289,7 +289,7 @@ async def create_payment_intent(pi_payload: PaymentIntentRequest):
         ) from exc
 
 
-def get_or_create_customer_id(email: str) -> str:
+def get_or_create_customer_id(email: str, origin: str, lang: str) -> str:
     """Customer ID from an email for existing Customer (monthly)"""
     customers: SearchResultObject[Customer] = stripe.Customer.search(  # pyright: ignore[reportUnknownMemberType]
         query=f'email:"{email}"', limit=1
@@ -297,7 +297,7 @@ def get_or_create_customer_id(email: str) -> str:
     if not customers.is_empty:
         return customers.data[0]["id"]
     customer = stripe.Customer.create(
-        name=email, email=email, metadata={"origin": "apple"}
+        name=email, email=email, metadata={"origin": origin, "lang": lang}
     )
     return customer.id
 
@@ -361,7 +361,9 @@ async def create_setup_intent(si_payload: SetupIntentRequest):
         f"Monthly setup request for {si_payload.amount} {si_payload.currency} {email}"
     )
     try:
-        customer_id = get_or_create_customer_id(email=email)
+        origin = get_normalized_origin(si_payload.origin)
+        lang = get_normalized_lang(si_payload.lang)
+        customer_id = get_or_create_customer_id(email=email, origin=origin, lang=lang)
 
         # fail with 409 if customer already has a subscription
         if stripe.Subscription.list(status="active", customer=customer_id, limit=1):
@@ -376,8 +378,8 @@ async def create_setup_intent(si_payload: SetupIntentRequest):
             metadata={
                 "currency": si_payload.currency,
                 "amount": str(si_payload.amount),
-                "origin": get_normalized_origin(si_payload.origin),
-                "lang": get_normalized_lang(si_payload.lang),
+                "origin": origin,
+                "lang": lang,
             },
             use_stripe_sdk=True,
         )
