@@ -15,6 +15,9 @@ from stripe import Customer, Event, SearchResultObject, StripeError, Webhook
 
 from donation_api.constants import conf
 
+FLAG_KEY = "created-by"
+FLAG_VALUE = "donation-portal"
+
 logger = logging.getLogger("uvicorn")
 stripe.api_key = conf.stripe_secret_api_key
 templates = Jinja2Templates(directory=conf.templates_dir)
@@ -98,7 +101,7 @@ async def get_body(request: Request):
 
 
 def get_normalized_origin(origin: str) -> str:
-    """ cleaned-up origin string (only ASCII letters/nums and ._+# chars)"""
+    """cleaned-up origin string (only ASCII letters/nums and ._+# chars)"""
     return (
         re.sub(r"([^\w\d\.\-\_\+\#]*)", "", origin.strip().lower(), flags=re.ASCII)
         or PaymentIntentRequest.model_fields["origin"].default
@@ -106,7 +109,7 @@ def get_normalized_origin(origin: str) -> str:
 
 
 def get_normalized_lang(lang: str) -> str:
-    """ cleaned-up lang code (2 or three letters). Not validated as ISO code"""
+    """cleaned-up lang code (2 or three letters). Not validated as ISO code"""
     nmlang = lang.strip().lower()
     return (
         nmlang
@@ -274,7 +277,12 @@ async def create_payment_intent(pi_payload: PaymentIntentRequest):
             currency=pi_payload.currency.lower(),
             description=f"[{origin}][single] Single donation from {origin}",
             use_stripe_sdk=True,
-            metadata={"origin": origin, "action": "single", "lang": lang},
+            metadata={
+                "origin": origin,
+                "action": "single",
+                "lang": lang,
+                FLAG_KEY: FLAG_VALUE,
+            },
         )
         return {"secret": intent.client_secret}
     except StripeError as exc:
@@ -297,7 +305,9 @@ def get_or_create_customer_id(email: str, origin: str, lang: str) -> str:
     if not customers.is_empty:
         return customers.data[0]["id"]
     customer = stripe.Customer.create(
-        name=email, email=email, metadata={"origin": origin, "lang": lang}
+        name=email,
+        email=email,
+        metadata={"origin": origin, "lang": lang, FLAG_KEY: FLAG_VALUE},
     )
     return customer.id
 
@@ -380,6 +390,7 @@ async def create_setup_intent(si_payload: SetupIntentRequest):
                 "amount": str(si_payload.amount),
                 "origin": origin,
                 "lang": lang,
+                FLAG_KEY: FLAG_VALUE,
             },
             use_stripe_sdk=True,
         )
@@ -451,7 +462,10 @@ async def webhook_received(
     # 1. when single donation flow ends: client validated secret and Stripe charges.
     # 2. every ~month~ for subscription customers
     #    when Stripe creates and charges an invoice
-    if event_type == "payment_intent.succeeded":
+    if (
+        event_type == "payment_intent.succeeded"
+        and data_object["metadata"].get(FLAG_KEY, "") == FLAG_VALUE
+    ):
         is_card_confirm = bool(data_object.get("customer"))
         msg = f"{data_object['amount']} {data_object['currency'].upper()}"
         if is_card_confirm:
@@ -459,7 +473,10 @@ async def webhook_received(
         else:
             logger.info(f"💰 Payment received! {msg}")
 
-    elif event_type == "payment_intent.payment_failed":
+    elif (
+        event_type == "payment_intent.payment_failed"
+        and data_object["metadata"].get(FLAG_KEY, "") == FLAG_VALUE
+    ):
         msg = f"{data_object['amount']} {data_object['currency'].upper()}" + (
             " (invoice)" if data_object.get("invoice") else ""
         )
@@ -469,7 +486,10 @@ async def webhook_received(
     # we now have a confirmed payment method on the Customer.
     # we'll set it as default payment method
     # and create a Subscription for requested amount (stored in SI metadata)
-    elif event_type == "setup_intent.succeeded":
+    elif (
+        event_type == "setup_intent.succeeded"
+        and data_object["metadata"].get(FLAG_KEY, "") == FLAG_VALUE
+    ):
         logger.info("⚙️ Monthtly SetupIntent received!")
 
         payment_methods = stripe.PaymentMethod.list(
@@ -516,7 +536,10 @@ async def webhook_received(
         )
         logger.info(f"✅ Subscription created {subscription.id}")
 
-    elif event_type == "setup_intent.setup_failed":
+    elif (
+        event_type == "setup_intent.setup_failed"
+        and data_object["metadata"].get(FLAG_KEY, "") == FLAG_VALUE
+    ):
         logger.info(f"❌ Monthly payment setup failed for {data_object['customer']}")
 
     # third (final) step of monthly donation flow
@@ -524,7 +547,10 @@ async def webhook_received(
     # have been paid automatically using the Customer's default payment method
     # the Subscription is thus now active.
     # we inform the customer
-    elif event_type == "customer.subscription.created":
+    elif (
+        event_type == "customer.subscription.created"
+        and data_object["metadata"].get(FLAG_KEY, "") == FLAG_VALUE
+    ):
         period = (
             "daily"
             if data_object["plan"]["interval"] == "day"
@@ -563,7 +589,14 @@ async def webhook_received(
             logger.error(f"❌ Failed to send email to {customer['email']}")
 
     # /!\ this is called every month when the payment succeeded
-    elif event_type == "invoice.payment_succeeded":
+    elif (
+        event_type == "invoice.payment_succeeded"
+        and data_object.get("parent", {})
+        .get("subscription_details", {})
+        .get("metadata", {})
+        .get(FLAG_KEY, "")
+        == FLAG_VALUE
+    ):
         logger.info(
             f"💰 Received invoice payment {data_object['amount_paid']} "
             f"{data_object['currency'].upper()}"
@@ -572,7 +605,14 @@ async def webhook_received(
     # we dont do much here because we've configured
     # our Subscription settings (in Stripe Billing)
     # to automatically send emails to customers in case of failed subs payments.
-    elif event_type == "invoice.payment_failed":
+    elif (
+        event_type == "invoice.payment_failed"
+        and data_object.get("parent", {})
+        .get("subscription_details", {})
+        .get("metadata", {})
+        .get(FLAG_KEY, "")
+        == FLAG_VALUE
+    ):
         logger.info(
             f"❌ Invoice payment failed {data_object['amount_due']} "
             f"{data_object['currency'].upper()}"
