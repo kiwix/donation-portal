@@ -31,6 +31,9 @@ class PaymentIntentRequest(BaseModel):
     amount: int
     currency: str
 
+    origin: str = "unknown"
+    lang: str = "en"
+
 
 class SetupIntentRequest(BaseModel):
     """Request Payload for a PaymentIntent creation"""
@@ -38,6 +41,9 @@ class SetupIntentRequest(BaseModel):
     amount: int
     currency: str
     email: str
+
+    origin: str = "unknown"
+    lang: str = "en"
 
 
 class PaymentIntent(BaseModel):
@@ -89,6 +95,24 @@ class OpaqueApplePayPaymentSession(BaseModel):
 async def get_body(request: Request):
     """raw request body"""
     return await request.body()
+
+
+def get_normalized_origin(origin: str) -> str:
+    """ cleaned-up origin string (only ASCII letters/nums and ._+# chars)"""
+    return (
+        re.sub(r"([^\w\d\.\-\_\+\#]*)", "", origin.strip().lower(), flags=re.ASCII)
+        or PaymentIntentRequest.model_fields["origin"].default
+    )
+
+
+def get_normalized_lang(lang: str) -> str:
+    """ cleaned-up lang code (2 or three letters). Not validated as ISO code"""
+    nmlang = lang.strip().lower()
+    return (
+        nmlang
+        if re.match("^[a-z]{2,3}$", nmlang)
+        else PaymentIntentRequest.model_fields["lang"].default
+    )
 
 
 def can_send_webhook(ip_addr: str) -> bool:
@@ -243,12 +267,14 @@ async def create_payment_intent(pi_payload: PaymentIntentRequest):
         )
     logger.info(f"PI for {pi_payload.amount} {pi_payload.currency}")
     try:
+        origin = get_normalized_origin(pi_payload.origin)
+        lang = get_normalized_lang(pi_payload.lang)
         intent = stripe.PaymentIntent.create(
             amount=pi_payload.amount,
             currency=pi_payload.currency.lower(),
-            description="[apple][single] Single donation from Kiwix reader (apple)",
+            description=f"[{origin}][single] Single donation from {origin}",
             use_stripe_sdk=True,
-            metadata={"origin": "apple", "action": "single"},
+            metadata={"origin": origin, "action": "single", "lang": lang},
         )
         return {"secret": intent.client_secret}
     except StripeError as exc:
@@ -350,6 +376,8 @@ async def create_setup_intent(si_payload: SetupIntentRequest):
             metadata={
                 "currency": si_payload.currency,
                 "amount": str(si_payload.amount),
+                "origin": get_normalized_origin(si_payload.origin),
+                "lang": get_normalized_lang(si_payload.lang),
             },
             use_stripe_sdk=True,
         )
@@ -455,11 +483,20 @@ async def webhook_received(
             invoice_settings={"default_payment_method": payment_method_id},
         )
 
+        origin = data_object["metadata"].get(
+            "origin", SetupIntentRequest.model_fields["origin"].default
+        )
+        lang = data_object["metadata"].get(
+            "lang", SetupIntentRequest.model_fields["lang"].default
+        )
         subscription = stripe.Subscription.create(
             customer=data_object["customer"],
             off_session=True,
-            description="[apple][monthly] Recurring donation from Kiwix reader (apple)",
-            metadata={"origin": "apple"},
+            description=f"[{origin}][monthly] Recurring donation from {origin}",
+            metadata={
+                "origin": origin,
+                "lang": lang,
+            },
             collection_method="charge_automatically",
             items=[
                 {
