@@ -518,6 +518,7 @@ async def webhook_received(
             metadata={
                 "origin": origin,
                 "lang": lang,
+                FLAG_KEY: FLAG_VALUE,
             },
             collection_method="charge_automatically",
             items=[
